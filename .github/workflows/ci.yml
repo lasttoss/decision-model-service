@@ -64,7 +64,10 @@ jobs:
       - name: a different case set is refused rather than compared
         run: |
           git checkout -- eval/baseline-rules.json
-          tail -n +2 eval/cases.jsonl > /tmp/short.jsonl
+          # A set one case shorter, not a set with one comment fewer: dropping the comment line
+          # leaves the same 128 cases, the gate compares them cleanly, and this step fails on its
+          # own assertion - which is what the first run of this workflow did.
+          grep -v '^#' eval/cases.jsonl | head -n -1 > /tmp/short.jsonl
           set +e
           go run ./cmd/decide --mode eval --provider rules --cases /tmp/short.jsonl --baseline eval/baseline-rules.json > /tmp/short.txt
           code=$?
