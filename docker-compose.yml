@@ -1,0 +1,18 @@
+# The API in one service, and the evaluation as a one-off `docker run` (see the Makefile):
+# declaring an eval service would make `compose up` run the whole case set every time someone
+# wanted the server, which is the kind of thing that makes a demo feel slow and mysterious.
+name: decision-model-service
+
+services:
+  api:
+    image: decision-model-service:local
+    build: .
+    command: ["--mode", "server", "--provider", "${DECIDE_PROVIDER:-rules}", "--threshold", "${DECIDE_THRESHOLD:-0.6}"]
+    environment:
+      # Point these at any OpenAI-compatible endpoint to run the model path. With a URL set
+      # the chain is model -> rules, so a degradation is visible in the response itself.
+      DECIDE_MODEL_URL: "${DECIDE_MODEL_URL:-}"
+      DECIDE_MODEL_NAME: "${DECIDE_MODEL_NAME:-}"
+      DECIDE_MODEL_KEY: "${DECIDE_MODEL_KEY:-}"
+    ports:
+      - "${DECIDE_API_PORT:-18110}:8080"

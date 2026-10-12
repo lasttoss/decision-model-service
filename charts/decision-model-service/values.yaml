@@ -1,0 +1,79 @@
+image:
+  repository: ghcr.io/lasttoss/decision-model-service
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+# The threshold is a policy decision, not a tuning knob: 0.6 in a tool that sends something to
+# a human, 0.9 in one that retries automatically. It is a value so that changing it is a
+# visible change to a deployment rather than an edit to code.
+threshold: "0.6"
+
+# Off by default. An explanation is the only part of a request that costs output tokens, and
+# the label does not need it.
+explain: false
+
+# The model is optional on purpose. With no URL the chain is the rule baseline alone and the
+# service never degrades; with a URL the chain is model -> rules, and a fallback is visible in
+# the response itself.
+model:
+  url: ""
+  name: ""
+  existingSecret: ""
+  apiKey: ""
+  timeout: 20s
+  # Prices are for the cost line in the evaluation, in dollars per million tokens. Left at
+  # zero rather than guessed: a cost table with an invented price is worse than no cost.
+  priceIn: "0"
+  priceOut: "0"
+
+# The scheduled gate. Quality drifts with model versions, prompt edits and case sets, and a
+# nightly job that fails is how that gets noticed before a caller does.
+eval:
+  enabled: true
+  schedule: "30 3 * * *"
+  baseline: eval/baseline-rules.json
+  provider: rules
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+service:
+  type: ClusterIP
+  port: 8080
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# On by default: /healthz and /metrics answer without a token, so the network is the access
+# decision. Egress is DNS plus the model endpoint, and nothing else.
+networkPolicy:
+  enabled: true
+  dnsPort: 53
+  model:
+    port: 11434
+    namespaceSelector: {}
+    podSelector: {}
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+nameOverride: ""
+fullnameOverride: ""

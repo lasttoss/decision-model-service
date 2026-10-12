@@ -1,0 +1,113 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      # No database, no network, no key: the whole suite runs on a bare runner, which is what
+      # makes it useful as a gate rather than as a report.
+      - name: go test -race with coverage
+        run: |
+          go test -race -coverprofile=cover.out -covermode=atomic ./...
+          go tool cover -func=cover.out | tail -1
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: the evaluation passes against the committed baseline
+        run: |
+          go run ./cmd/decide --mode eval --provider rules --baseline eval/baseline-rules.json | tee /tmp/eval.txt
+          grep -q "PASS no metric dropped" /tmp/eval.txt
+          grep -q "hard_accuracy" /tmp/eval.txt
+      # A gate nobody has seen fail is a claim, so the job breaks it on purpose: the baseline
+      # is doctored upward and the tool must exit non-zero and name the metric.
+      - name: a doctored baseline must fail the gate
+        run: |
+          python3 - <<'PY'
+          import json
+          p = "eval/baseline-rules.json"
+          d = json.load(open(p))
+          d["macro_f1"] = d["macro_f1"] + 0.2
+          json.dump(d, open(p, "w"), indent=2)
+          PY
+          set +e
+          go run ./cmd/decide --mode eval --provider rules --baseline eval/baseline-rules.json > /tmp/broken.txt
+          code=$?
+          set -e
+          cat /tmp/broken.txt
+          test "$code" -ne 0 || { echo "the gate passed a doctored baseline"; exit 1; }
+          grep -q "FAIL macro_f1" /tmp/broken.txt
+          echo "gate ok: a doctored baseline exits $code and names macro_f1"
+      - name: a different case set is refused rather than compared
+        run: |
+          git checkout -- eval/baseline-rules.json
+          tail -n +2 eval/cases.jsonl > /tmp/short.jsonl
+          set +e
+          go run ./cmd/decide --mode eval --provider rules --cases /tmp/short.jsonl --baseline eval/baseline-rules.json > /tmp/short.txt
+          code=$?
+          set -e
+          test "$code" -ne 0 || { echo "a different case set must not compare cleanly"; exit 1; }
+          grep -q "FAIL n" /tmp/short.txt
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: docker build -t decision-model-service:ci .
+      # The image carries the case set and the baseline, so the whole evaluation runs inside
+      # it with no network. If either file stopped being copied, this is where it shows.
+      - name: the image scores itself offline
+        run: |
+          docker run --rm decision-model-service:ci --mode eval --provider rules --baseline eval/baseline-rules.json | tee /tmp/inimage.txt
+          grep -q "PASS no metric dropped" /tmp/inimage.txt
+      - name: the image serves decisions
+        run: |
+          docker run -d --rm --name dms -p 8080:8080 decision-model-service:ci --mode server --provider rules
+          for i in $(seq 1 20); do curl -fsS http://localhost:8080/healthz >/dev/null && break; sleep 1; done
+          curl -fsS -X POST -H 'Content-Type: application/json' -d '{"input":"context canceled"}' http://localhost:8080/v1/decide | tee /tmp/decide.txt
+          grep -q '"label":"expected"' /tmp/decide.txt
+          curl -fsS http://localhost:8080/metrics | grep -q "decision_decisions_total 1"
+          docker stop dms
+
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - name: render both branches and validate
+        run: |
+          helm lint --strict charts/decision-model-service
+          curl -sSLo /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp kubeconform
+          helm template dms charts/decision-model-service > /tmp/default.yaml
+          test "$(grep -c '^kind:' /tmp/default.yaml)" -ge 4
+          /tmp/kubeconform -strict -summary -kubernetes-version 1.30.0 - < /tmp/default.yaml
+          helm template dms charts/decision-model-service --set model.url=http://ollama.default.svc:11434/v1 --set model.name=qwen2.5:7b-instruct --set eval.enabled=true --set autoscaling.enabled=true > /tmp/full.yaml
+          test "$(grep -c '^kind:' /tmp/full.yaml)" -ge 5
+          /tmp/kubeconform -strict -summary -kubernetes-version 1.30.0 - < /tmp/full.yaml

@@ -1,0 +1,51 @@
+{{- if .Values.eval.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "dms.fullname" . }}-eval
+  labels:
+    {{- include "dms.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.eval.schedule | quote }}
+  # Never two at once: the second run would score the same case set and reach the same
+  # conclusion, and the interesting event - the numbers moved - is in the diff.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ .Values.eval.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.eval.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "dms.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: {{ default (include "dms.fullname" .) .Values.serviceAccount.name }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eval
+              image: {{ include "dms.image" . }}
+              # The job exits non-zero when a metric drops, which is the point of running it on
+              # a schedule: a failed Job in the cluster is a quality signal someone will see.
+              args:
+                - "--mode"
+                - "eval"
+                - "--provider"
+                - {{ .Values.eval.provider | quote }}
+                - "--baseline"
+                - {{ .Values.eval.baseline | quote }}
+                - "--threshold"
+                - {{ .Values.threshold | quote }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+{{- end }}

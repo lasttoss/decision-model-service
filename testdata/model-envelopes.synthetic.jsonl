@@ -1,0 +1,14 @@
+# Hand-written chat envelopes, NOT recordings from a model.
+#
+# They exist to exercise the transport and the parser contract - the envelope shape, the
+# usage fields, the refusal path - inside CI, with no network and no key. They are not a
+# quality claim about any model, and the evaluation never scores them as one: the scores
+# in this repository are the rule baseline's, and the model column is filled by pointing
+# the tool at a real endpoint:  make eval-model DECIDE_MODEL_URL=... DECIDE_MODEL_NAME=...
+{"input": "context canceled", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"expected\\\", \\\"confidence\\\": 0.94}\"}}], \"usage\": {\"prompt_tokens\": 142, \"completion_tokens\": 11}}"}
+{"input": "panic: runtime error: nil pointer dereference", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"needs_human\\\", \\\"confidence\\\": 0.97}\"}}], \"usage\": {\"prompt_tokens\": 142, \"completion_tokens\": 11}}"}
+{"input": "dial tcp 10.4.2.9:5432: i/o timeout", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"retryable\\\", \\\"confidence\\\": 0.91}\"}}], \"usage\": {\"prompt_tokens\": 142, \"completion_tokens\": 11}}"}
+{"input": "timeout talking to the secrets backend: permission denied", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"needs_human\\\", \\\"confidence\\\": 0.88}\"}}], \"usage\": {\"prompt_tokens\": 142, \"completion_tokens\": 11}}"}
+{"input": "migration already applied, nothing to do", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"expected\\\", \\\"confidence\\\": 0.86}\"}}], \"usage\": {\"prompt_tokens\": 139, \"completion_tokens\": 10}}"}
+{"input": "429 from the ledger API: quota exceeded for the month", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"{\\\"label\\\": \\\"needs_human\\\", \\\"confidence\\\": 0.83}\"}}], \"usage\": {\"prompt_tokens\": 148, \"completion_tokens\": 10}}"}
+{"input": "the frobnicator wobbled twice", "response": "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"I am not sure what this is.\"}}], \"usage\": {\"prompt_tokens\": 140, \"completion_tokens\": 12}}"}

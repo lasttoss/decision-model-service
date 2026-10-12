@@ -1,0 +1,56 @@
+{
+  "n": 7,
+  "hard": 0,
+  "hard_correct": 0,
+  "accuracy": 0.8571428571428571,
+  "accuracy_when_committed": 1,
+  "macro_f1": 0.9333333333333332,
+  "coverage": 0.8571428571428571,
+  "abstained": 1,
+  "committed": 6,
+  "per_label": {
+    "expected": {
+      "support": 3,
+      "predicted": 2,
+      "precision": 1,
+      "recall": 0.6666666666666666,
+      "f1": 0.8
+    },
+    "needs_human": {
+      "support": 3,
+      "predicted": 3,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "retryable": {
+      "support": 1,
+      "predicted": 1,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    }
+  },
+  "confusion": {
+    "expected": {
+      "abstain": 1,
+      "expected": 2
+    },
+    "needs_human": {
+      "needs_human": 3
+    },
+    "retryable": {
+      "retryable": 1
+    }
+  },
+  "degraded_by_reason": {
+    "provider_unparseable": 1
+  },
+  "latency_p50_ms": 0.005,
+  "latency_p95_ms": 0.069,
+  "tokens_in": 855,
+  "tokens_out": 64,
+  "cost_per_1k_decisions_usd": 0.5035714285714286,
+  "price_per_mtok_in_usd": 3,
+  "price_per_mtok_out_usd": 15
+}

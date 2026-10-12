@@ -1,0 +1,18 @@
+decision-model-service is installed.
+
+  api      : {{ include "dms.fullname" . }} ({{ .Values.replicaCount }} replicas)
+  chain    : {{ if .Values.model.url }}model ({{ .Values.model.url }}) -> rules{{ else }}rules only - no model configured{{ end }}
+  threshold: {{ .Values.threshold }}  (below this the service abstains instead of answering)
+  gate     : {{ if .Values.eval.enabled }}nightly at {{ .Values.eval.schedule }} against {{ .Values.eval.baseline }}{{ else }}disabled{{ end }}
+  policy   : networkPolicy {{ if .Values.networkPolicy.enabled }}enabled - /healthz and /metrics have no token{{ else }}DISABLED{{ end }}
+
+Ask it a question:
+
+  kubectl port-forward svc/{{ include "dms.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl -s -X POST localhost:{{ .Values.service.port }}/v1/decide -d '{"input":"context canceled"}'
+
+Score it, and prove the install carries the case set:
+
+  helm test {{ .Release.Name }}
+  kubectl create job --from=cronjob/{{ include "dms.fullname" . }}-eval eval-now
+  kubectl logs job/eval-now

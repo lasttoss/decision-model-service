@@ -1,0 +1,132 @@
+# The frozen case set. Authored by hand in author_cases.py; regenerate with
+# `python3 eval/author_cases.py`. A case with a `why` is a hard case: the obvious
+# keyword reading disagrees with the label, and the evaluation scores those
+# separately. See eval/README.md for the labelling rule.
+{"id": "c001", "input": "rpc error: code = DeadlineExceeded desc = context deadline exceeded", "label": "retryable"}
+{"id": "c002", "input": "dial tcp 10.4.2.9:5432: i/o timeout", "label": "retryable"}
+{"id": "c003", "input": "read tcp 10.4.2.11:52344->10.4.2.9:6379: connection reset by peer", "label": "retryable"}
+{"id": "c004", "input": "connection refused: upstream database not accepting connections yet", "label": "retryable"}
+{"id": "c005", "input": "write tcp: broken pipe while streaming snapshot", "label": "retryable"}
+{"id": "c006", "input": "upstream returned 503 Service Unavailable", "label": "retryable"}
+{"id": "c007", "input": "504 Gateway Timeout from the profile service", "label": "retryable"}
+{"id": "c008", "input": "429 Too Many Requests from the search API, retrying after 2s", "label": "retryable"}
+{"id": "c009", "input": "connection pool exhausted, waited 30s for a free connection", "label": "retryable"}
+{"id": "c010", "input": "etcdserver: leader changed, request may be retried", "label": "retryable"}
+{"id": "c011", "input": "net/http: TLS handshake timeout", "label": "retryable"}
+{"id": "c012", "input": "stream terminated by RST_STREAM with error code 2", "label": "retryable"}
+{"id": "c013", "input": "temporarily unavailable: the shard is being moved", "label": "retryable"}
+{"id": "c014", "input": "circuit breaker open for payments, will retry in 5s", "label": "retryable"}
+{"id": "c015", "input": "no healthy upstream for the inventory service", "label": "retryable"}
+{"id": "c016", "input": "pod evicted from node due to memory pressure, rescheduled", "label": "retryable"}
+{"id": "c017", "input": "node ip-10-4-2-7 is NotReady, workload rescheduling", "label": "retryable"}
+{"id": "c018", "input": "unexpected EOF while reading the response body", "label": "retryable"}
+{"id": "c019", "input": "DNS resolution failed for cache.internal: server misbehaving", "label": "retryable"}
+{"id": "c020", "input": "server busy, please try again later", "label": "retryable"}
+{"id": "c021", "input": "deadlock detected, transaction rolled back", "label": "retryable", "hard": true, "why": "deadlocks look fatal, but PostgreSQL resolves them by rolling one side back and the correct action is to retry"}
+{"id": "c022", "input": "failed to acquire lease on shard 3: already held by another leader", "label": "needs_human", "hard": true, "why": "this looks transient, but two leaders on one shard is a split-brain symptom, not load"}
+{"id": "c023", "input": "timeout after 30s waiting for a free worker slot", "label": "retryable"}
+{"id": "c024", "input": "connection reset by peer while the client was still sending", "label": "retryable"}
+{"id": "c025", "input": "upstream connect error or disconnect/reset before headers", "label": "retryable"}
+{"id": "c026", "input": "retry budget exhausted after 5 attempts: deadline exceeded", "label": "retryable"}
+{"id": "c027", "input": "io.grpc.StatusRuntimeException: UNAVAILABLE", "label": "retryable"}
+{"id": "c028", "input": "temporary failure in name resolution", "label": "retryable"}
+{"id": "c029", "input": "the replica is catching up, reads will be served shortly", "label": "retryable"}
+{"id": "c030", "input": "request cancelled because the node drained", "label": "retryable"}
+{"id": "c031", "input": "kafka broker not available yet, continuing to retry", "label": "retryable"}
+{"id": "c032", "input": "read-only transaction refused: could not serialize access", "label": "retryable"}
+{"id": "c033", "input": "socket hang up while uploading the bundle", "label": "retryable"}
+{"id": "c034", "input": "the load balancer returned 502 for the whole fleet for 4 seconds", "label": "retryable"}
+{"id": "c035", "input": "redis cluster: CLUSTERDOWN, slots are being migrated", "label": "retryable"}
+{"id": "c036", "input": "grpc: the connection is draining", "label": "retryable"}
+{"id": "c037", "input": "HTTP 408 from the origin server", "label": "retryable"}
+{"id": "c038", "input": "failed to send to the message broker: queue full, backing off", "label": "retryable"}
+{"id": "c039", "input": "the upstream took longer than the 5s budget, request abandoned", "label": "retryable"}
+{"id": "c040", "input": "context canceled", "label": "expected"}
+{"id": "c041", "input": "context canceled: the client closed the connection before the response", "label": "expected"}
+{"id": "c042", "input": "request cancelled by the client", "label": "expected"}
+{"id": "c043", "input": "client disconnected while streaming telemetry", "label": "expected"}
+{"id": "c044", "input": "client hung up before sending a request", "label": "expected"}
+{"id": "c045", "input": "readiness probe succeeded after 1s", "label": "expected"}
+{"id": "c046", "input": "liveness probe returned 200", "label": "expected"}
+{"id": "c047", "input": "health check ok, serving traffic", "label": "expected"}
+{"id": "c048", "input": "graceful shutdown started, draining connections", "label": "expected"}
+{"id": "c049", "input": "shutting down: 0 in-flight requests", "label": "expected"}
+{"id": "c050", "input": "shutdown signal received, 2 requests still draining", "label": "expected"}
+{"id": "c051", "input": "reloaded config from /etc/liveops/config.yaml", "label": "expected"}
+{"id": "c052", "input": "reconnect established after 1 attempt", "label": "expected"}
+{"id": "c053", "input": "deployment rollout complete: 3 of 3 replicas updated", "label": "expected"}
+{"id": "c054", "input": "migration already applied, nothing to do", "label": "expected", "hard": true, "why": "the word migration points at needs_human, but a migration that reports nothing to do is the healthy case"}
+{"id": "c055", "input": "starting http server on :8080", "label": "expected"}
+{"id": "c056", "input": "loaded config: connect_timeout=5s retry_max=3 backoff=200ms", "label": "expected", "hard": true, "why": "a configuration dump mentioning timeout and retry is not an incident, and a keyword baseline reads it as one"}
+{"id": "c057", "input": "health check passed after 2 retries", "label": "expected", "hard": true, "why": "retries that succeed are the mechanism working, not a failure to report"}
+{"id": "c058", "input": "cache miss for key session:9f21, populated from origin", "label": "expected"}
+{"id": "c059", "input": "feature flag double_xp evaluated to false", "label": "expected"}
+{"id": "c060", "input": "session token refreshed for user 4711", "label": "expected"}
+{"id": "c061", "input": "worker claimed 0 fires - nothing was pending", "label": "expected"}
+{"id": "c062", "input": "audit row written for config.publish", "label": "expected"}
+{"id": "c063", "input": "404 for /favicon.ico from the browser warmup", "label": "expected"}
+{"id": "c064", "input": "TLS certificate renewed successfully, expires in 89 days", "label": "expected"}
+{"id": "c065", "input": "connection pool warmed up: 8 connections established", "label": "expected"}
+{"id": "c066", "input": "the queue is empty, idling for 1s", "label": "expected"}
+{"id": "c067", "input": "metrics scrape completed in 41ms", "label": "expected"}
+{"id": "c068", "input": "leader election won by this node, term 14", "label": "expected", "hard": true, "why": "a leader election that ends with a winner is routine; only a lost quorum is an incident"}
+{"id": "c069", "input": "backup snapshot uploaded to object storage", "label": "expected"}
+{"id": "c070", "input": "user 4711 logged out, session removed", "label": "expected"}
+{"id": "c071", "input": "rate limiter allowed the request (token bucket refilled)", "label": "expected"}
+{"id": "c072", "input": "upstream health check disabled by configuration", "label": "expected"}
+{"id": "c073", "input": "the canary received 5% of traffic as configured", "label": "expected"}
+{"id": "c074", "input": "autoscaler added 1 replica, total 4", "label": "expected"}
+{"id": "c075", "input": "connection closed by the remote peer after an idle period", "label": "expected"}
+{"id": "c076", "input": "received SIGTERM, will finish the current batch", "label": "expected"}
+{"id": "c077", "input": "the stream ended because the client stopped watching", "label": "expected", "hard": true, "why": "the same words as a truncated stream, and the opposite meaning: only the client's intent tells them apart"}
+{"id": "c078", "input": "config hot reload applied without dropping connections", "label": "expected"}
+{"id": "c079", "input": "the lock was released by the holder after the work finished", "label": "expected"}
+{"id": "c080", "input": "trace sampled at 1%, this request was not recorded", "label": "expected"}
+{"id": "c081", "input": "warmup request to the pricing service returned 200", "label": "expected"}
+{"id": "c082", "input": "pod started, waiting for the readiness gate", "label": "expected"}
+{"id": "c083", "input": "cache eviction removed 120 expired entries", "label": "expected"}
+{"id": "c084", "input": "permission denied while opening /var/lib/liveops/state.db", "label": "needs_human"}
+{"id": "c085", "input": "unauthorized: token audience does not include this service", "label": "needs_human"}
+{"id": "c086", "input": "403 Forbidden from the billing API for project 88", "label": "needs_human"}
+{"id": "c087", "input": "invalid credentials for the vault login", "label": "needs_human"}
+{"id": "c088", "input": "panic: runtime error: nil pointer dereference", "label": "needs_human"}
+{"id": "c089", "input": "panic: assignment to entry in nil map", "label": "needs_human"}
+{"id": "c090", "input": "fatal error: unexpected signal during runtime execution (segmentation fault)", "label": "needs_human"}
+{"id": "c091", "input": "write /var/lib/postgresql/data: no space left on device", "label": "needs_human"}
+{"id": "c092", "input": "checksum mismatch on segment 41, refusing to start", "label": "needs_human"}
+{"id": "c093", "input": "invariant violated: balance is negative for account 91", "label": "needs_human"}
+{"id": "c094", "input": "schema mismatch: column sessions.channel does not exist", "label": "needs_human"}
+{"id": "c095", "input": "pq: no such table users", "label": "needs_human"}
+{"id": "c096", "input": "constraint violation: duplicate key value violates unique constraint sessions_pkey", "label": "needs_human"}
+{"id": "c097", "input": "monthly quota exceeded for the translation API", "label": "needs_human"}
+{"id": "c098", "input": "certificate expired on 2026-09-30, clients are rejecting the handshake", "label": "needs_human"}
+{"id": "c099", "input": "x509: certificate signed by unknown authority", "label": "needs_human"}
+{"id": "c100", "input": "signature verification failed for the release artifact", "label": "needs_human"}
+{"id": "c101", "input": "attempted a write to a read-only replica", "label": "needs_human"}
+{"id": "c102", "input": "secret liveops/db-password not found in vault", "label": "needs_human"}
+{"id": "c103", "input": "invalid configuration: unknown field replicaCounts (did you mean replicaCount?)", "label": "needs_human"}
+{"id": "c104", "input": "migration 0007 failed: relation events already exists", "label": "needs_human"}
+{"id": "c105", "input": "data corruption detected in the snapshot index", "label": "needs_human"}
+{"id": "c106", "input": "OOMKilled: the container exceeded its memory limit of 256Mi", "label": "needs_human"}
+{"id": "c107", "input": "too many open files: the descriptor table is full and it is not recovering", "label": "needs_human", "hard": true, "why": "a resource exhaustion that persists is a leak, and retrying keeps the process at the ceiling"}
+{"id": "c108", "input": "the service account has no permission to list endpoints", "label": "needs_human"}
+{"id": "c109", "input": "timeout talking to the secrets backend: permission denied", "label": "needs_human", "hard": true, "why": "a timeout says retry and permission denied says stop; a triage tool that reads only the first word sends it to the wrong queue"}
+{"id": "c110", "input": "context canceled: could not reach vault due to invalid credentials", "label": "needs_human", "hard": true, "why": "the cancellation is a symptom of the credential failure, not of a client giving up"}
+{"id": "c111", "input": "429 from the ledger API: quota exceeded for the month", "label": "needs_human", "hard": true, "why": "429 normally means slow down, but a monthly quota means waiting will not help"}
+{"id": "c112", "input": "503 from the auth service followed by invalid credentials for 40 minutes", "label": "needs_human", "hard": true, "why": "the 503 is over; the credential problem is what is left"}
+{"id": "c113", "input": "connection refused to the primary, and the replica promotion never happened", "label": "needs_human", "hard": true, "why": "refused suggests a retry, but a failed promotion is a human decision about data"}
+{"id": "c114", "input": "the migration plan wants to drop column users.legacy_id", "label": "needs_human"}
+{"id": "c115", "input": "replica lag is 4 hours and growing", "label": "needs_human"}
+{"id": "c116", "input": "the audit trail rejected an UPDATE, which should be impossible", "label": "needs_human"}
+{"id": "c117", "input": "two writers reported the same revision number", "label": "needs_human"}
+{"id": "c118", "input": "the disk is 98% full and the retention job is disabled", "label": "needs_human"}
+{"id": "c119", "input": "kafka consumer group has no members and the lag is 2 million", "label": "needs_human"}
+{"id": "c120", "input": "the feature flag service returned a value that is not in the schema", "label": "needs_human"}
+{"id": "c121", "input": "row count mismatch after the nightly aggregation", "label": "needs_human"}
+{"id": "c122", "input": "the encryption key was rotated without re-encrypting the existing rows", "label": "needs_human"}
+{"id": "c123", "input": "login succeeded for a disabled account", "label": "needs_human"}
+{"id": "c124", "input": "the retry queue is 12 hours behind and still growing", "label": "needs_human"}
+{"id": "c125", "input": "deployment rolled back automatically after 3 failed readiness checks and stayed rolled back", "label": "needs_human"}
+{"id": "c126", "input": "the rate limiter is rejecting 100% of traffic from our own region", "label": "needs_human"}
+{"id": "c127", "input": "cluster quorum lost: 2 of 3 nodes are unreachable", "label": "needs_human"}
+{"id": "c128", "input": "the same panic has restarted the process 47 times in an hour", "label": "needs_human"}

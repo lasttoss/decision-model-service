@@ -1,0 +1,11 @@
+# The recorded-envelope subset. This set exists to exercise the transport and the parser
+# contract with no network, and it is NOT a quality measurement of any model: seven
+# hand-written envelopes cannot say how well a model triages. The header of
+# testdata/model-envelopes.synthetic.jsonl says the same thing.
+{"id": "r001", "input": "context canceled", "label": "expected"}
+{"id": "r002", "input": "panic: runtime error: nil pointer dereference", "label": "needs_human"}
+{"id": "r003", "input": "dial tcp 10.4.2.9:5432: i/o timeout", "label": "retryable"}
+{"id": "r004", "input": "timeout talking to the secrets backend: permission denied", "label": "needs_human"}
+{"id": "r005", "input": "migration already applied, nothing to do", "label": "expected"}
+{"id": "r006", "input": "429 from the ledger API: quota exceeded for the month", "label": "needs_human"}
+{"id": "r007", "input": "the frobnicator wobbled twice", "label": "expected"}

@@ -1,0 +1,44 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "dms.fullname" . }}
+  labels:
+    {{- include "dms.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "dms.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # /healthz and /metrics answer without a token, so the network is the access decision: a
+    # namespace opts in by carrying the label, and nothing else can reach the port.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              liveops.dev/scrape: "true"
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+  egress:
+    # DNS first: a policy that forgets it produces a service that resolves nothing and
+    # reports a timeout, which is the most expensive hour in this file.
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: {{ .Values.networkPolicy.dnsPort }}
+    {{- if .Values.model.url }}
+    # The model endpoint and nothing else. A policy that allowed the whole cluster would make
+    # the fallback untestable, and the interesting failure is the model being unreachable.
+    - to:
+        - namespaceSelector: {{ toYaml .Values.networkPolicy.model.namespaceSelector | nindent 12 }}
+          podSelector: {{ toYaml .Values.networkPolicy.model.podSelector | nindent 12 }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.networkPolicy.model.port }}
+    {{- end }}
+{{- end }}

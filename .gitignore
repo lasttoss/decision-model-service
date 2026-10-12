@@ -1,0 +1,5 @@
+.env
+/decide
+*.bak
+# Written by `make eval-model . . . --json`: a per-run artefact, not a committed baseline.
+eval/report-*.json

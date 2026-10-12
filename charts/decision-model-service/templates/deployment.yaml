@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dms.fullname" . }}
+  labels:
+    {{- include "dms.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dms.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dms.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ default (include "dms.fullname" .) .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: decide
+          image: {{ include "dms.image" . }}
+          args:
+            - "--mode"
+            - "server"
+            {{- if .Values.model.url }}
+            - "--provider"
+            - "model"
+            - "--model-url"
+            - {{ .Values.model.url | quote }}
+            - "--model-name"
+            - {{ .Values.model.name | quote }}
+            - "--model-timeout"
+            - {{ .Values.model.timeout | quote }}
+            {{- else }}
+            - "--provider"
+            - "rules"
+            {{- end }}
+            - "--threshold"
+            - {{ .Values.threshold | quote }}
+            - "--explain={{ .Values.explain }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          env:
+            {{- if and .Values.model.url (not .Values.model.existingSecret) .Values.model.apiKey }}
+            - name: DECIDE_MODEL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dms.fullname" . }}-model
+                  key: DECIDE_MODEL_KEY
+            {{- end }}
+          # Liveness is the process; there is nothing to connect to, so a readiness probe that
+          # only re-tested the port would be theatre. Both are here anyway: they are how a
+          # rollout stops sending traffic to a pod that cannot answer.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 1
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+{{- if and .Values.model.url (not .Values.model.existingSecret) .Values.model.apiKey }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "dms.fullname" . }}-model
+  labels:
+    {{- include "dms.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  DECIDE_MODEL_KEY: {{ .Values.model.apiKey | quote }}
+{{- end }}

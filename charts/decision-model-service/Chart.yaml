@@ -1,0 +1,16 @@
+apiVersion: v2
+name: decision-model-service
+description: >-
+  A narrow decision service: one closed label set, a rule baseline that always answers, an
+  optional model in front of it, a confidence threshold, and a scheduled evaluation that
+  fails if quality drops.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/lasttoss/decision-model-service
+sources:
+  - https://github.com/lasttoss/decision-model-service
+maintainers:
+  - name: Tran Trung Dung
+    url: https://github.com/lasttoss
+keywords: [llm, evaluation, triage, classification, kubernetes, fallback]
