@@ -44,7 +44,6 @@ demo:
 	@docker run -d --rm --name decide-fallback -p $(FALL_PORT):8080 $(IMG) --mode server \
 		--provider model --model-url http://127.0.0.1:9/v1 --model-name does-not-exist --threshold $(THRESHOLD) >/dev/null
 	@sleep 1
-	@curl -sS -X POST -H 'Content-Type: application/json' -d '{"input":"dial tcp 10.4.2.9:5432: i/o timeout"}' \
 		curl -sS -X POST -H 'Content-Type: application/json' -d '{"input":"dial tcp 10.4.2.9:5432: i/o timeout"}' http://localhost:$(FALL_PORT)/v1/decide | python3 -c 'import json,sys; d=json.load(sys.stdin); print("  label=%s source=%s degraded=%s reason=%s total_ms=%.2f" % (d["label"], d["source"], d["degraded"], d.get("degraded_reason","-"), d["total_ms"]))'
 	@docker stop decide-fallback >/dev/null
 	@echo

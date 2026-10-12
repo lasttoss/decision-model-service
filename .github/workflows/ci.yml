@@ -93,6 +93,29 @@ jobs:
           curl -fsS http://localhost:8080/metrics | grep -q "decision_decisions_total 1"
           docker stop dms
 
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      # The three stories are the part a reviewer actually reads, so they are the part CI
+      # checks: a format string printed instead of a value, or a fallback that stops
+      # reporting its reason, is a claim in the README that stopped being true.
+      - name: the three stories
+        env:
+          API_PORT: "18110"
+          FALL_PORT: "18111"
+        run: |
+          make demo | tee /tmp/demo.txt
+          grep -q "hard_accuracy" /tmp/demo.txt
+          grep -q "PASS no metric dropped" /tmp/demo.txt
+          grep -q "degraded=True" /tmp/demo.txt
+          grep -q "reason=provider_error" /tmp/demo.txt
+          grep -q "expected/0.94 source=model" /tmp/demo.txt
+          grep -q "source=none tokens=0/0 degraded=True" /tmp/demo.txt
+
   chart:
     runs-on: ubuntu-latest
     steps:
