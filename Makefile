@@ -38,14 +38,14 @@ help:
 demo:
 	@echo "== 1. the measurement (rules, $(CASES)) =="
 	@$(RUN) go run ./cmd/decide --mode eval --provider rules --baseline $(BASELINE) --threshold $(THRESHOLD) --mistakes 2
-	@docker build -q -t $(IMG) . >/dev/null
+	@docker build -q -t $(IMG) . >/dev/null 2>&1
 	@echo
 	@echo "== 2. the fallback: model first, pointed at nothing =="
 	@docker run -d --rm --name decide-fallback -p $(FALL_PORT):8080 $(IMG) --mode server \
 		--provider model --model-url http://127.0.0.1:9/v1 --model-name does-not-exist --threshold $(THRESHOLD) >/dev/null
 	@sleep 1
 	@curl -sS -X POST -H 'Content-Type: application/json' -d '{"input":"dial tcp 10.4.2.9:5432: i/o timeout"}' \
-		http://localhost:$(FALL_PORT)/v1/decide | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"  label={{d[\"label\"]}} source={{d[\"source\"]}} degraded={{d[\"degraded\"]}} reason={{d.get(\"degraded_reason\",\"-\")}} total_ms={{d[\"total_ms\"]:.2f}}")'
+		curl -sS -X POST -H 'Content-Type: application/json' -d '{"input":"dial tcp 10.4.2.9:5432: i/o timeout"}' http://localhost:$(FALL_PORT)/v1/decide | python3 -c 'import json,sys; d=json.load(sys.stdin); print("  label=%s source=%s degraded=%s reason=%s total_ms=%.2f" % (d["label"], d["source"], d["degraded"], d.get("degraded_reason","-"), d["total_ms"]))'
 	@docker stop decide-fallback >/dev/null
 	@echo
 	@echo "== 3. the model path, from recorded envelopes (no network, no key) =="
@@ -55,7 +55,7 @@ demo:
 	@for line in "context canceled" "panic: runtime error: nil pointer dereference" "the frobnicator wobbled twice"; do \
 		printf '  %-46s -> ' "$$line"; \
 		curl -sS -X POST -H 'Content-Type: application/json' -d "{\"input\":\"$$line\"}" http://localhost:$(API_PORT)/v1/decide \
-		  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f"{{d[\"label\"]}}/{{d[\"confidence\"]:.2f}} source={{d[\"source\"]}} tokens={{d.get(\"tokens_in\",0)}}/{{d.get(\"tokens_out\",0)}} degraded={{d[\"degraded\"]}}")'; \
+		  | python3 -c 'import json,sys; d=json.load(sys.stdin); print("%s/%.2f source=%s tokens=%s/%s degraded=%s" % (d["label"], d["confidence"], d["source"], d.get("tokens_in",0), d.get("tokens_out",0), d["degraded"]))'; \
 	done
 	@docker stop decide-recorded >/dev/null
 	@echo
@@ -76,7 +76,7 @@ build:
 # The image is the deliverable, so the image runs the evaluation: if the case set or the
 # baseline were not copied in, this is where it shows.
 image:
-	@docker build -q -t $(IMG) . >/dev/null
+	@docker build -q -t $(IMG) . >/dev/null 2>&1
 	@docker run --rm $(IMG) --mode eval --provider rules --baseline $(BASELINE) | grep -q "PASS no metric dropped" \
 		&& echo "image ok: the evaluation runs inside the image, offline"
 	@docker run -d --rm --name dms-image-test -p $(API_PORT):8080 $(IMG) --mode server --provider rules >/dev/null
@@ -117,7 +117,7 @@ eval-recorded:
 		--baseline eval/baseline-recorded.json --threshold $(THRESHOLD) --mistakes 5
 
 server:
-	@docker build -q -t $(IMG) . >/dev/null
+	@docker build -q -t $(IMG) . >/dev/null 2>&1
 	@docker run --rm -p $(API_PORT):8080 $(IMG) --mode server --provider $(PROVIDER) --threshold $(THRESHOLD) \
 		$(if $(DECIDE_MODEL_URL),--model-url "$(DECIDE_MODEL_URL)" --model-name "$(DECIDE_MODEL_NAME)",)
 
