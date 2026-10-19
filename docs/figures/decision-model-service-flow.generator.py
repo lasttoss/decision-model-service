@@ -162,7 +162,7 @@ for i, promise in enumerate(PROMISES):
     cx = MARGIN + PAD + i * (chip_w + 12)
     svg.append(rect(cx, strip_y + 38, chip_w, 28, fill=TINT, stroke="#e8cdbd", rx=6))
     svg.append(text(cx + 10, strip_y + 57, f"{i + 1}. {promise}", size=11.5))
-svg.append(text(MARGIN, H - 16, "make eval   → the same numbers, against the committed baseline; make baseline rewrites it, deliberately",
+svg.append(text(MARGIN, H - 16, "make eval   → the same numbers, against the committed baseline; make baseline rewrites it, deliberately; make readme-check resolves every command this README names, and runs the offline ones",
                 size=11, fill=MUTED, family="mono"))
 svg.append("</svg>")
 

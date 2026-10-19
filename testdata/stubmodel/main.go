@@ -37,9 +37,9 @@ func main() {
 		}
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		response := map[string]any{
-			"id":      "stub",
-			"object":  "chat.completion",
-			"model":   body.Model,
+			"id":     "stub",
+			"object": "chat.completion",
+			"model":  body.Model,
 			"choices": []any{map[string]any{
 				"index":         0,
 				"finish_reason": "stop",
