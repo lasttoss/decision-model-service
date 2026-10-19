@@ -14,7 +14,8 @@ make demo        # three stories: the measurement, the fallback, the model path
 make test        # go test -race ./...  (no network, no database, no key)
 make eval        # score the rule baseline and compare with the committed baseline - the gate
 make baseline    # rewrite the baseline, deliberately, after reading the diff
-make eval-model  # score a real model: DECIDE_MODEL_URL=... DECIDE_MODEL_NAME=...
+make baseline-model  # write the model baseline from a real endpoint, once
+make eval-model      # score a real model against that baseline
 ```
 
 ## What this demonstrates
@@ -88,15 +89,64 @@ are in tension on purpose - a single number would have hidden exactly this.
 
 ## What the model column says
 
-Nothing, yet, and that is the honest state: no model endpoint was reachable while this was
-written. The repository ships the instrument, not a claim:
+A rule table and a model, the same 128 cases and the same threshold, scored by the two commands:
+
+| | rules (`make eval`) | gemma4:31b-cloud (`make eval-model`) |
+|---|---|---|
+| macro F1 | 0.5454 | **0.9446** |
+| accuracy | 0.3828 | 0.9453 |
+| accuracy over what it committed to | 0.9423 | 0.9453 |
+| coverage | 0.406 (76 of 128 abstained) | **1.000** |
+| hard cases (of 13) | 3 | **12** |
+| latency p50 / p95 | 0.04 / 0.05 ms | 509 / 874 ms |
+| cost per 1k decisions | $0 (no tokens) | $0.5987 |
+| degraded | none | none |
+
+Read the third line before the first. **The rule table is as accurate as the model on the cases it is
+willing to answer** - 0.9423 against 0.9453 - and it answers 52 of 128. So the model's advantage is
+not being right more often; it is refusing less often, and that is what the 509 milliseconds and the
+60 cents per thousand decisions buy. The repository is built so that this distinction is visible
+rather than averaged away: coverage, `accuracy_when_committed` and the abstention count are in the
+report and in the baseline file, not just the headline F1.
+
+The model was wrong on five of the 128, and the report prints the five with its own reasoning:
 
 ```
-$ make eval-model DECIDE_MODEL_URL=http://localhost:11434/v1 DECIDE_MODEL_NAME=<a model>
+c022 want=needs_human got=expected conf=0.90 [hard]
+  input: failed to acquire lease on shard 3: already held by another leader
+  why:   this looks transient, but two leaders on one shard is a split-brain symptom, not load
+c029 want=retryable got=expected conf=1.00
+  input: the replica is catching up, reads will be served shortly
 ```
 
-That writes `eval/baseline-model.json` with the same metrics, including the cost line computed
-from the price you pass in. The model path itself is exercised in CI with no network, through
+Two runs stand behind that table, and the first one is worth keeping. Pointed at an endpoint whose
+model had been retired that month, the harness returned `coverage 0.0000 · macro_f1 0.0000 ·
+degraded provider_client_error=128`: 128 abstentions, a reason on every answer, and nothing scored as
+right. A dead endpoint produced a report that said a dead endpoint was the problem, which is the whole
+point of the abstention column - the second run is the live one.
+
+```
+$ make baseline-model MODEL_NET='--network host' \
+    DECIDE_MODEL_URL=http://localhost:11434/v1 DECIDE_MODEL_NAME=<a model>
+$ make eval-model MODEL_NET='--network host' \
+    DECIDE_MODEL_URL=http://localhost:11434/v1 DECIDE_MODEL_NAME=<a model>
+```
+
+The first writes `eval/baseline-model.json`, including the cost line computed from the price you pass
+in (`PRICE_IN`/`PRICE_OUT`, dollars per million tokens, defaulting to 3 and 15 - a flag, not a
+lookup, so the cost line is only as true as the price you give it). The second scores the same
+endpoint against that snapshot and fails on a drop of more than `TOLERANCE`.
+
+Re-run against the baseline it wrote, the same command reproduced every quality metric to four
+decimals and moved only the latency and cost lines, which is the shape a snapshot comparison should
+have. It is a snapshot of one endpoint on one day, not a CI gate: a model at temperature 0 still
+answers slightly differently each time, and the file is meant to be rewritten with `make baseline-model` after
+reading the diff. The scoring runs in a container, so the endpoint it is given is the container's view
+of the network: `host.docker.internal` is mapped to the host for an endpoint listening on every
+interface, and `MODEL_NET='--network host'` with a `localhost` URL for one bound to the host's
+loopback, which is ollama's default.
+
+The model path itself is exercised in CI with no network, through
 `testdata/model-envelopes.synthetic.jsonl` - **hand-written envelopes, not recordings from a
 model** - which is a test of the transport and the parser contract and is labelled as such in
 the file, in `make eval-recorded`, and here.

@@ -97,6 +97,7 @@ EVAL = Block("the evaluation that makes the above honest", "one command, one gat
     ("eval/cases.jsonl   128 cases, 13 of them hard", True),
     ("→ score: macro_f1, accuracy, coverage, hard, cost, p50/p95", True),
     ("→ compare eval/baseline-rules.json, tolerance 0.01", True),
+    ("→ a model separately: make baseline-model, then eval-model", True),
     ("→ CI job + a nightly CronJob, both exit non-zero on a drop", True),
     ("a different case count is refused, not compared", True),
 ])
@@ -168,8 +169,8 @@ svg.append("</svg>")
 meta = ('<!-- diagram-meta {"topic":"decision-model-service-flow","level":"runtime","type":"flowchart",'
         '"question":"What answers one log line, what happens when the model does not, and how is any of it measured?",'
         '"sources":["internal/decide/decide.go","internal/model/model.go","internal/rules/rules.go","internal/score/score.go",'
-        '"internal/evaluate/evaluate.go","internal/api/api.go","cmd/decide/main.go","eval/cases.jsonl","eval/baseline-rules.json",'
-        '"charts/decision-model-service/templates/cronjob.yaml"],"updated":"2026-10-12"} -->')
+        '"internal/evaluate/evaluate.go","internal/api/api.go","cmd/decide/main.go","eval/cases.jsonl","eval/baseline-rules.json","eval/baseline-model.json","Makefile",'
+        '"charts/decision-model-service/templates/cronjob.yaml"],"updated":"2026-10-19"} -->')
 
 page = f"""{meta}
 <!DOCTYPE html>

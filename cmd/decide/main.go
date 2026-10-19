@@ -117,7 +117,13 @@ func runEval(ctx context.Context, cfg evalConfig) int {
 	if err != nil {
 		log.Fatalf("providers: %v", err)
 	}
-	if len(chain) != 1 {
+	// Scoring uses the first provider's answers, because eval measures a provider on its own: the
+	// rule table behind the model is the service's fallback, not part of the model's quality. Only
+	// the model comes as a chain - model then rules, the configuration in which a degradation means
+	// something - so a chain longer than one is allowed exactly there. This check used to reject any
+	// chain but a single provider, which made `--provider model` impossible to evaluate at all:
+	// the one path that reports a model's quality refused to start.
+	if len(chain) == 0 || (len(chain) != 1 && cfg.provider != "model") {
 		log.Fatalf("eval takes exactly one provider, got %d", len(chain))
 	}
 	// Prices only affect the cost line, which is why a run with the rule baseline reports

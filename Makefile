@@ -10,6 +10,21 @@ IMG        := decision-model-service:local
 CASES      ?= eval/cases.jsonl
 BASELINE   ?= eval/baseline-rules.json
 THRESHOLD  ?= 0.6
+# A model baseline is a snapshot of one endpoint on one day, so it is written by one target and
+# compared by another, the way the rules baseline is.
+MODEL_BASE ?= eval/baseline-model.json
+PRICE_IN   ?= 3
+PRICE_OUT  ?= 15
+# An empty -model-key is not the same as no key: the client only sends Authorization when the key is
+# non-empty, but a flag with an empty value still has to parse.
+# The scoring runs inside a container, so an endpoint on the host is not on localhost from in there.
+# host.docker.internal is mapped to the host's gateway; an endpoint bound to the host's loopback only
+# (ollama's default) needs MODEL_NET='--network host' and then a localhost URL.
+MODEL_NET  ?= --add-host=host.docker.internal:host-gateway
+RUN_MODEL  := docker run --rm $(MODEL_NET) -v $(PWD):/app -v $(CACHE):/go -w /app $(IMAGE)
+MODEL_FLAGS := --model-url "$(DECIDE_MODEL_URL)" --model-name "$(DECIDE_MODEL_NAME)" \
+	$(if $(DECIDE_MODEL_KEY),--model-key "$(DECIDE_MODEL_KEY)",) \
+	--price-in $(PRICE_IN) --price-out $(PRICE_OUT)
 
 .PHONY: help demo test coverage lint build image eval baseline eval-model server eval-recorded chart diagram
 
@@ -102,18 +117,20 @@ baseline:
 
 # Scoring a real model is one command and needs an endpoint. Prices are only used for the
 # cost line, and they are passed in rather than baked in, because they change.
-eval-model:
+eval-model: ## score a real model against the committed model baseline
+	# This target passed `--price-in $(PRICE_IN)` with PRICE_IN declared nowhere, so the command the
+	# README documents died inside the flag parser ("invalid value \"--price-out\" for flag -price-in")
+	# before a single request was made - and it compared against eval/baseline-model.json, which does
+	# not exist until somebody writes it.
 	@test -n "$(DECIDE_MODEL_URL)" || { echo "set DECIDE_MODEL_URL (and DECIDE_MODEL_NAME) to score a real model"; exit 2; }
-	@$(RUN) go run ./cmd/decide --mode eval --provider model --cases $(CASES) --baseline eval/baseline-model.json \
-		--threshold $(THRESHOLD) --mistakes 5 \
-		--model-url "$(DECIDE_MODEL_URL)" --model-name "$(DECIDE_MODEL_NAME)" --model-key "$(DECIDE_MODEL_KEY)" \
-		--price-in $(PRICE_IN) --price-out $(PRICE_OUT)
+	@test -f $(MODEL_BASE) || { echo "no $(MODEL_BASE): write it once with \`make baseline-model DECIDE_MODEL_URL=... DECIDE_MODEL_NAME=...\`"; exit 2; }
+	@$(RUN_MODEL) go run ./cmd/decide --mode eval --provider model --cases $(CASES) --baseline $(MODEL_BASE) \
+		--threshold $(THRESHOLD) --mistakes 5 $(MODEL_FLAGS)
 
-# Contract only: the recorded envelopes exercise the transport and the parser, and they are
-# not evidence about any model's quality. The header of the file says so too.
-eval-recorded:
-	@$(RUN) go run ./cmd/decide --mode eval --provider recorded --cases eval/cases-recorded.jsonl \
-		--baseline eval/baseline-recorded.json --threshold $(THRESHOLD) --mistakes 5
+baseline-model: ## write eval/baseline-model.json from a real endpoint, deliberately
+	@test -n "$(DECIDE_MODEL_URL)" || { echo "set DECIDE_MODEL_URL (and DECIDE_MODEL_NAME) to score a real model"; exit 2; }
+	@$(RUN_MODEL) go run ./cmd/decide --mode eval --provider model --cases $(CASES) --baseline $(MODEL_BASE) \
+		--threshold $(THRESHOLD) --mistakes 5 --update-baseline $(MODEL_FLAGS)
 
 server:
 	@docker build -q -t $(IMG) . >/dev/null 2>&1

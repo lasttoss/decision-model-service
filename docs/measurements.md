@@ -56,5 +56,81 @@ $ make demo
 ```
 
 **Result.** With no provider configured the service still answers, marks itself `degraded=True`, and
-records why. The model column stays empty until an endpoint is given, and the evaluation says that
-out loud rather than filling it with something that looks like a result.
+records why. Until an endpoint is given the evaluation leaves the model column empty and says so,
+rather than filling it with something that looks like a result.
+
+## The model column, two runs
+
+The first run of `make eval-model` on this machine did not get as far as a model: it died in the flag
+parser, then on a chain length, and both are fixed in the commit that carries these numbers.
+`cmd/decide` required `len(chain) == 1` to score anything, while the model provider is deliberately a
+chain of two - the model with the rule table behind it - so the one path that reports a model's
+quality could not be started by the command the README documents.
+
+| | |
+|---|---|
+| Machine | 12-core x86-64 (AMD64), 31 GB, Linux Mint 22.3, Docker 29.1.3 |
+| Go | 1.25.13, in the repository's own `golang:1.25` image |
+| Date | 2026-10-19 (UTC) |
+| Price used | `PRICE_IN`/`PRICE_OUT` at their defaults, 3 and 15 $/Mtok |
+
+```
+$ make baseline-model MODEL_NET='--network host' \
+    DECIDE_MODEL_URL=http://localhost:11434/v1 DECIDE_MODEL_NAME=<a model>
+```
+
+**Run 1, endpoint retired.** The endpoint answered every request with an API error - the model had
+been retired that September - and the evaluation reported it as data rather than as a failure:
+
+```
+  macro_f1         0.0000
+  coverage         0.0000  (128 of 128 abstained)
+  hard_accuracy    0.0000  (0 of 13)
+  latency          p50 245.85ms  p95 287.97ms
+  degraded         provider_client_error=128
+```
+
+Nothing was guessed, nothing was scored as right, and the reason appears on the answer. This is the
+abstention path doing its job on a model endpoint instead of a unit test.
+
+**Run 2, live endpoint: `gemma4:31b-cloud`.**
+
+```
+  metric           value
+  macro_f1         0.9446
+  accuracy         0.9453  (over the 128 it committed to)
+  coverage         1.0000  (0 of 128 abstained)
+  hard_accuracy    0.9231  (12 of 13)
+  cost             0.5987 $/1k decisions (price 3.00/15.00 per Mtok)
+  latency          p50 509.23ms  p95 873.84ms
+  degraded         none
+```
+
+Against the rule baseline in the same file: `macro_f1 0.5454`, `accuracy 0.3828`, `coverage 0.4063`,
+`hard_accuracy 0.2308`. The line that matters is `accuracy_when_committed`: **0.9423 for the rules
+against 0.9453 for the model**. The rule table is not less accurate than the model when it answers -
+it answers 52 of 128 instead of 128 of 128. The comparison in the README is written that way.
+
+Five cases were wrong, and the report prints them with the model's own reasoning. `c022`
+(`failed to acquire lease on shard 3: already held by another leader`, wanted `needs_human`, got
+`expected`) is the honest kind: the model explains that it reads as transient when two leaders on one
+shard is a split-brain symptom, which is an argument a reviewer can disagree with on the merits.
+
+**Run 3, the same command again.** `make eval-model` scored the same endpoint against the baseline
+run 2 wrote and passed:
+
+```
+  gate              eval/baseline-model.json (tolerance 0.010)
+                    PASS no metric dropped
+  exit 0
+```
+
+Every quality metric came back identical to four decimals - `macro_f1 0.9446`, `accuracy 0.9453`,
+`coverage 1.0000`, `hard_accuracy 0.9231` - and only the lines nobody should read as constants moved:
+`latency p50 508.23` against `509.23` ms, `cost 0.5939` against `0.5987` $/1k. The five wrong cases
+were the same five. That is a small piece of evidence about the endpoint and a larger one about the
+report: quality is stable across runs, and the numbers that are not stable are labelled as latency
+and price rather than folded into the score.
+
+No unit test locks the chain-length fix: the eval path reports through `log.Fatalf`, so what proves it
+is the three runs above, not a test. Worth a follow-up that makes the path return an error instead.

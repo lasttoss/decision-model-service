@@ -1,0 +1,58 @@
+{
+  "n": 128,
+  "hard": 13,
+  "hard_correct": 12,
+  "accuracy": 0.9453125,
+  "accuracy_when_committed": 0.9453125,
+  "macro_f1": 0.9446479446479445,
+  "coverage": 1,
+  "abstained": 0,
+  "committed": 128,
+  "per_label": {
+    "expected": {
+      "support": 44,
+      "predicted": 47,
+      "precision": 0.9148936170212766,
+      "recall": 0.9772727272727273,
+      "f1": 0.945054945054945
+    },
+    "needs_human": {
+      "support": 46,
+      "predicted": 44,
+      "precision": 0.9772727272727273,
+      "recall": 0.9347826086956522,
+      "f1": 0.9555555555555557
+    },
+    "retryable": {
+      "support": 38,
+      "predicted": 37,
+      "precision": 0.9459459459459459,
+      "recall": 0.9210526315789473,
+      "f1": 0.9333333333333332
+    }
+  },
+  "confusion": {
+    "expected": {
+      "expected": 43,
+      "retryable": 1
+    },
+    "needs_human": {
+      "expected": 2,
+      "needs_human": 43,
+      "retryable": 1
+    },
+    "retryable": {
+      "expected": 2,
+      "needs_human": 1,
+      "retryable": 35
+    }
+  },
+  "degraded_by_reason": {},
+  "latency_p50_ms": 509.234,
+  "latency_p95_ms": 873.838,
+  "tokens_in": 15811,
+  "tokens_out": 1947,
+  "cost_per_1k_decisions_usd": 0.5987343749999999,
+  "price_per_mtok_in_usd": 3,
+  "price_per_mtok_out_usd": 15
+}
