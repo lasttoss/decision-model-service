@@ -16,6 +16,7 @@ make eval        # score the rule baseline and compare with the committed baseli
 make baseline    # rewrite the baseline, deliberately, after reading the diff
 make baseline-model  # write the model baseline from a real endpoint, once
 make eval-model      # score a real model against that baseline
+make readme-check    # every command named in this file resolves, and the offline ones are run
 ```
 
 ## What this demonstrates
@@ -223,8 +224,9 @@ a token scheme for a demo would teach nothing about the part of this repository 
 | `docker-compose.yml` | ✅ | one API service; the evaluation is a one-off `docker run` so `compose up` cannot accidentally run the whole case set |
 | `Dockerfile` | ✅ | two stages, distroless `static-debian12:nonroot`, and it carries `eval/` and `testdata/` so the evaluation runs inside the image with no network |
 | Helm chart | ✅ | `charts/decision-model-service`: Deployment, Service, a **nightly evaluation CronJob**, NetworkPolicy on by default |
-| `docs/figures/` + freshness gate | ✅ | `decision-model-service-flow` with `diagram-meta`; `make diagram` fails on a stale export |
+| `docs/figures/` + freshness gate | ✅ | `decision-model-service-flow` with `diagram-meta`; `make diagram` fails on a stale export; the `.png` export is checked against the `.html` it came from, and the checker is in `scripts/`, so CI runs it |
 | tests + coverage in CI | ✅ | 9 packages, no network and no database needed; coverage printed on every run |
+| documented commands | ✅ | `make readme-check` resolves every command this file names and runs the offline ones - including `make baseline-model` and `make eval-model`, against a stub endpoint rather than a model |
 | README with what it demonstrates | ✅ | this file |
 
 ## Licence

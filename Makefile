@@ -1,7 +1,11 @@
 # Everything runs in a container, so a fresh clone works with no Go installed.
 IMAGE ?= golang:1.25
 CACHE ?= decide-gocache
-RUN   := docker run --rm -v $(PWD):/app -v $(CACHE):/go -w /app $(IMAGE)
+# The build runs in a container, where git refuses the repository mounted from the host (root opens a
+# tree owned by the user who launched it), so Go's VCS stamping cannot work and `go build` fails with
+# "error obtaining VCS status: exit status 128". Stamping is worth nothing for a container build.
+GOFLAGS_CONTAINER := -e GOFLAGS=-buildvcs=false
+RUN   := docker run --rm $(GOFLAGS_CONTAINER) -v $(PWD):/app -v $(CACHE):/go -w /app $(IMAGE)
 
 API_PORT   ?= 18110
 FALL_PORT  ?= 18111
@@ -21,7 +25,7 @@ PRICE_OUT  ?= 15
 # host.docker.internal is mapped to the host's gateway; an endpoint bound to the host's loopback only
 # (ollama's default) needs MODEL_NET='--network host' and then a localhost URL.
 MODEL_NET  ?= --add-host=host.docker.internal:host-gateway
-RUN_MODEL  := docker run --rm $(MODEL_NET) -v $(PWD):/app -v $(CACHE):/go -w /app $(IMAGE)
+RUN_MODEL  := docker run --rm $(GOFLAGS_CONTAINER) $(MODEL_NET) -v $(PWD):/app -v $(CACHE):/go -w /app $(IMAGE)
 MODEL_FLAGS := --model-url "$(DECIDE_MODEL_URL)" --model-name "$(DECIDE_MODEL_NAME)" \
 	$(if $(DECIDE_MODEL_KEY),--model-key "$(DECIDE_MODEL_KEY)",) \
 	--price-in $(PRICE_IN) --price-out $(PRICE_OUT)
@@ -132,6 +136,14 @@ baseline-model: ## write eval/baseline-model.json from a real endpoint, delibera
 	@$(RUN_MODEL) go run ./cmd/decide --mode eval --provider model --cases $(CASES) --baseline $(MODEL_BASE) \
 		--threshold $(THRESHOLD) --mistakes 5 --update-baseline $(MODEL_FLAGS)
 
+eval-recorded: ## score the recorded envelopes, for the parser contract only
+	# Restored: the commit that added the model baseline spliced its targets in above this one and took
+	# it with them, so `make eval-recorded` - a command the README names, and the one that proves the
+	# parser contract with no network - became "No rule to make target". The guard in
+	# scripts/readme-check.py found it on its first run.
+	@$(RUN) go run ./cmd/decide --mode eval --provider recorded --cases eval/cases-recorded.jsonl \
+		--baseline eval/baseline-recorded.json --threshold $(THRESHOLD) --mistakes 5
+
 server:
 	@docker build -q -t $(IMG) . >/dev/null 2>&1
 	@docker run --rm -p $(API_PORT):8080 $(IMG) --mode server --provider $(PROVIDER) --threshold $(THRESHOLD) \
@@ -155,5 +167,21 @@ chart:
 	@$(KCONF) < /tmp/dms-full.yaml
 	@echo "chart ok: both branches rendered, counted and validated"
 
-diagram:
-	@bash ~/.pi/agent/scripts/diagram-freshness.sh
+diagram: ## Regenerate the figure, re-export it, and check it against the sources it names
+	# The checker is in this repository, not on the machine of whoever drew the figure: it used to be
+	# ~/.pi/agent/scripts/diagram-freshness.sh, so the gate this README describes could not run in a
+	# clean clone, and nothing ran it in CI.
+	@python3 docs/figures/decision-model-service-flow.generator.py
+	@python3 scripts/export-figure.py docs/figures/decision-model-service-flow.html
+	@python3 scripts/diagram-freshness.py .
+
+# Every command this README names has to resolve, and the ones that need no external endpoint are run.
+# Entries are ';'-separated; a leading '!' means the command must fail. What cannot run here is printed
+# with the reason rather than skipped in silence.
+README_RUN ?= make diagram; make test; make eval; make eval-recorded; make demo; ./scripts/check-model-path.sh
+README_SKIP ?= make baseline | rewrites the committed rule baseline on purpose, after reading the diff; make server | serves the API in a container until it is stopped; make image | builds the image and runs the evaluation inside it; make chart | helm lint and render, which the chart job runs; make eval-model | needs an endpoint: ./scripts/check-model-path.sh runs it against a stub instead
+
+.PHONY: readme-check
+readme-check: build ## Every command this README names resolves, and the offline ones are run
+	@README_RUN='$(README_RUN)' README_SKIP='$(README_SKIP)' python3 scripts/readme-check.py .
+

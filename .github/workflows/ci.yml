@@ -119,6 +119,21 @@ jobs:
           grep -q "expected/0.94 source=model" /tmp/demo.txt
           grep -q "source=none tokens=0/0 degraded=True" /tmp/demo.txt
 
+  # Every command the README names, checked, and run - including the two that score a model, against a
+  # stub endpoint. Three sibling repositories shipped README commands that did not work, and CI could not
+  # see any of them, because it runs a fixed list of targets rather than the commands the documentation
+  # promises. This one caught the model path being broken in three ways at once.
+  readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the figure checker compares the commit dates of a figure and its sources
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+      - run: make readme-check
+
   chart:
     runs-on: ubuntu-latest
     steps:
